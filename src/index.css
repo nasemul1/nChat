@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;500;700&family=Instrument+Sans:wght@400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface-hover: #1a1a1a;
+  --surface-active: #222222;
+  --fg: #F0EDE6;
+  --muted: rgba(240,237,230,0.4);
+  --muted-strong: rgba(240,237,230,0.6);
+  --border: rgba(240,237,230,0.1);
+  --border-strong: rgba(240,237,230,0.2);
+  --accent: #ED462D;
+  --accent-hover: #d93d26;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --sidebar-w: 280px;
+  --header-h: 56px;
+  --input-h: 72px;
+  --font-display: 'Instrument Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-body: 'Instrument Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: 'Chivo Mono', 'JetBrains Mono', ui-monospace, monospace;
+}
+
+html, body, #root {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); }
+
+::selection {
+  background: var(--accent);
+  color: var(--bg);
+}
