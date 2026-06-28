@@ -24,6 +24,20 @@
   --font-mono: 'Chivo Mono', 'JetBrains Mono', ui-monospace, monospace;
 }
 
+[data-theme="light"] {
+  --bg: #f5f5f0;
+  --surface: #ffffff;
+  --surface-hover: #f0f0eb;
+  --surface-active: #e8e8e3;
+  --fg: #1a1a1a;
+  --muted: rgba(26,26,26,0.45);
+  --muted-strong: rgba(26,26,26,0.65);
+  --border: rgba(26,26,26,0.1);
+  --border-strong: rgba(26,26,26,0.2);
+  --accent: #d93d26;
+  --accent-hover: #c43520;
+}
+
 html, body, #root {
   width: 100%; height: 100%;
   background: var(--bg);

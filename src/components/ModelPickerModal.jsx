@@ -4,7 +4,7 @@ import { fetchModels } from "../utils/fetchModels";
 import useStore from "../store";
 
 export default function ModelPickerModal() {
-  const { provider, model, apiKeys, customEndpoints, accountIds, setModel, setModelSupportsFiles } = useStore();
+  const { provider, model, apiKeys, customEndpoints, accountIds, setModel, setModelSupportsFiles, recentModels, addRecentModel } = useStore();
   const [open, setOpen] = useState(false);
   const [models, setModels] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -65,6 +65,11 @@ export default function ModelPickerModal() {
     setModel(id);
     const selected = models.find((m) => m.id === id);
     setModelSupportsFiles(selected?.supportsFiles ?? true);
+    addRecentModel({
+      provider,
+      modelId: id,
+      modelName: selected?.name || id,
+    });
     setOpen(false);
   };
 
@@ -161,47 +166,90 @@ export default function ModelPickerModal() {
                 )}
               </div>
 
+              {!loading && !search && recentModels.length > 0 && (
+                <>
+                  <div className="model-picker-section-label">Recent</div>
+                  <div className="model-picker-list">
+                    {recentModels.map((r) => (
+                      <div
+                        key={`${r.provider}-${r.modelId}`}
+                        className={`model-picker-item${r.modelId === model && r.provider === provider ? " selected" : ""}`}
+                        onClick={() => {
+                          if (r.provider === provider) {
+                            handleSelect(r.modelId);
+                          } else {
+                            useStore.getState().setProvider(r.provider);
+                            useStore.getState().setModel(r.modelId);
+                            setOpen(false);
+                          }
+                        }}
+                      >
+                        <div className="model-picker-item-main">
+                          <span className="model-picker-item-name">{r.modelName}</span>
+                          {r.modelId === model && r.provider === provider && (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
+                              <path d="M20 6L9 17l-5-5" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="model-picker-item-meta">
+                          <span className="model-picker-item-id">{r.modelId}</span>
+                          {r.provider !== provider && (
+                            <span className="model-picker-item-provider">{PROVIDERS[r.provider]?.name || r.provider}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
               {!loading && filtered.length > 0 && (
-                <div className="model-picker-list">
-                  {filtered.map((m) => (
-                    <div
-                      key={m.id}
-                      className={`model-picker-item${m.id === model ? " selected" : ""}`}
-                      onClick={() => handleSelect(m.id)}
-                    >
-                      <div className="model-picker-item-main">
-                        <span className="model-picker-item-name">{m.name}</span>
-                        {m.id === model && (
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="var(--accent)"
-                            strokeWidth="2"
-                          >
-                            <path d="M20 6L9 17l-5-5" />
-                          </svg>
-                        )}
+                <>
+                  {!search && recentModels.length > 0 && (
+                    <div className="model-picker-section-label">All Models</div>
+                  )}
+                  <div className="model-picker-list">
+                    {filtered.map((m) => (
+                      <div
+                        key={m.id}
+                        className={`model-picker-item${m.id === model ? " selected" : ""}`}
+                        onClick={() => handleSelect(m.id)}
+                      >
+                        <div className="model-picker-item-main">
+                          <span className="model-picker-item-name">{m.name}</span>
+                          {m.id === model && (
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="var(--accent)"
+                              strokeWidth="2"
+                            >
+                              <path d="M20 6L9 17l-5-5" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="model-picker-item-meta">
+                          <span className="model-picker-item-id">{m.id}</span>
+                          {m.context && (
+                            <span>{(m.context / 1000).toFixed(0)}K ctx</span>
+                          )}
+                          {m.pricing?.prompt && (
+                            <span>
+                              $
+                              {(parseFloat(m.pricing.prompt) * 1000000).toFixed(
+                                2,
+                              )}
+                              /M in
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="model-picker-item-meta">
-                        <span className="model-picker-item-id">{m.id}</span>
-                        {m.context && (
-                          <span>{(m.context / 1000).toFixed(0)}K ctx</span>
-                        )}
-                        {m.pricing?.prompt && (
-                          <span>
-                            $
-                            {(parseFloat(m.pricing.prompt) * 1000000).toFixed(
-                              2,
-                            )}
-                            /M in
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </>
               )}
 
               {!loading && !error && filtered.length === 0 && apiKey && (

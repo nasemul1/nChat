@@ -18,6 +18,7 @@ export default function SettingsModal() {
     setCustomEndpoint,
     setAccountId,
     setModelSupportsFiles,
+    addRecentModel,
   } = useStore();
 
   const [localKey, setLocalKey] = useState("");
@@ -108,6 +109,11 @@ export default function SettingsModal() {
     setAccountId(localProvider, localAccountId);
     const selected = models.find((m) => m.id === localModel);
     setModelSupportsFiles(selected?.supportsFiles ?? true);
+    addRecentModel({
+      provider: localProvider,
+      modelId: localModel,
+      modelName: selected?.name || localModel,
+    });
     closeSettings();
   };
 

@@ -230,6 +230,16 @@
 .menu-toggle:hover { color: var(--fg); }
 .menu-toggle svg { width: 20px; height: 20px; }
 
+.theme-toggle {
+  background: none; border: none;
+  color: var(--muted);
+  cursor: pointer;
+  width: 36px; height: 36px;
+  display: grid; place-items: center;
+  transition: color 0.15s;
+}
+.theme-toggle:hover { color: var(--fg); }
+
 .header-title {
   font-family: var(--font-mono);
   font-size: 12px;
@@ -990,6 +1000,22 @@
 }
 .model-picker-item-id {
   opacity: 0.6;
+}
+.model-picker-item-provider {
+  font-size: 9px;
+  padding: 1px 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  color: var(--muted-strong);
+}
+.model-picker-section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 8px 14px 4px;
 }
 
 /* ═══ FILE ATTACHMENTS ═══ */

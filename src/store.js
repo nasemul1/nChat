@@ -20,6 +20,8 @@ const saveState = (state) => {
       customEndpoints: state.customEndpoints,
       accountIds: state.accountIds,
       modelSupportsFiles: state.modelSupportsFiles,
+      theme: state.theme,
+      recentModels: state.recentModels,
     }));
   } catch {}
 };
@@ -36,6 +38,8 @@ const getInitial = () => {
     customEndpoints: {},
     accountIds: {},
     modelSupportsFiles: true,
+    theme: 'dark',
+    recentModels: [],
   };
 };
 
@@ -151,6 +155,31 @@ const useStore = create((set, get) => ({
   settingsOpen: false,
   openSettings: () => set({ settingsOpen: true }),
   closeSettings: () => set({ settingsOpen: false }),
+
+  theme: initial.theme || 'dark',
+  setTheme: (theme) => {
+    set({ theme });
+    document.documentElement.setAttribute('data-theme', theme);
+    setTimeout(() => saveState(get()), 0);
+  },
+  toggleTheme: () => {
+    const next = get().theme === 'dark' ? 'light' : 'dark';
+    set({ theme: next });
+    document.documentElement.setAttribute('data-theme', next);
+    setTimeout(() => saveState(get()), 0);
+  },
+
+  recentModels: initial.recentModels || [],
+  addRecentModel: (entry) => {
+    set((s) => {
+      const filtered = s.recentModels.filter(
+        (r) => !(r.provider === entry.provider && r.modelId === entry.modelId),
+      );
+      const recentModels = [entry, ...filtered].slice(0, 8);
+      setTimeout(() => saveState({ ...s, recentModels }), 0);
+      return { recentModels };
+    });
+  },
 }));
 
 export default useStore;
