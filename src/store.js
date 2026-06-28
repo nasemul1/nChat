@@ -18,6 +18,7 @@ const saveState = (state) => {
       model: state.model,
       apiKeys: state.apiKeys,
       customEndpoints: state.customEndpoints,
+      accountIds: state.accountIds,
     }));
   } catch {}
 };
@@ -32,6 +33,7 @@ const getInitial = () => {
     model: 'openrouter/auto',
     apiKeys: {},
     customEndpoints: {},
+    accountIds: {},
   };
 };
 
@@ -112,6 +114,7 @@ const useStore = create((set, get) => ({
 
   apiKeys: initial.apiKeys || {},
   customEndpoints: initial.customEndpoints || {},
+  accountIds: initial.accountIds || {},
 
   setApiKey: (provider, key) => {
     set((s) => {
@@ -126,6 +129,14 @@ const useStore = create((set, get) => ({
       const customEndpoints = { ...s.customEndpoints, [provider]: endpoint };
       setTimeout(() => saveState({ ...s, customEndpoints }), 0);
       return { customEndpoints };
+    });
+  },
+
+  setAccountId: (provider, id) => {
+    set((s) => {
+      const accountIds = { ...s.accountIds, [provider]: id };
+      setTimeout(() => saveState({ ...s, accountIds }), 0);
+      return { accountIds };
     });
   },
 

@@ -147,7 +147,7 @@ function MessageBubble({ role, content, time, files }) {
 export default function ChatArea() {
   const {
     conversations, activeConvo, provider, model,
-    apiKeys, customEndpoints, addMessage,
+    apiKeys, customEndpoints, accountIds, addMessage,
   } = useStore();
 
   const [input, setInput] = useState('');
@@ -169,12 +169,20 @@ export default function ChatArea() {
     if (!text.trim() && files.length === 0) return;
 
     const state = useStore.getState();
-    const currentConvo = state.conversations.find((c) => c.id === state.activeConvo);
-    if (!currentConvo) return;
+    let currentConvo = state.conversations.find((c) => c.id === state.activeConvo);
+    if (!currentConvo) {
+      const newId = useStore.getState().createConversation();
+      currentConvo = useStore.getState().conversations.find((c) => c.id === newId);
+    }
 
     const apiKey = state.apiKeys[state.provider];
+    const accountId = state.accountIds?.[state.provider];
     if (PROVIDERS[state.provider]?.needsKey && !apiKey) {
       alert('Please set your API key in Settings first.');
+      return;
+    }
+    if (PROVIDERS[state.provider]?.needsAccountId && !accountId) {
+      alert('Please set your Cloudflare Account ID in Settings first.');
       return;
     }
 
@@ -199,6 +207,7 @@ export default function ChatArea() {
         provider: state.provider,
         model: state.model,
         apiKey,
+        accountId,
         messages: allMessages,
         endpoint,
         signal: controller.signal,

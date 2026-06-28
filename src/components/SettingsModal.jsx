@@ -1,45 +1,67 @@
-import { useState, useEffect, useCallback } from 'react';
-import { PROVIDERS } from '../utils/providers';
-import { fetchModels } from '../utils/fetchModels';
-import useStore from '../store';
+import { useState, useEffect, useCallback } from "react";
+import { PROVIDERS } from "../utils/providers";
+import { fetchModels } from "../utils/fetchModels";
+import useStore from "../store";
 
 export default function SettingsModal() {
   const {
-    settingsOpen, closeSettings, provider, model,
-    apiKeys, customEndpoints,
-    setApiKey, setProvider, setModel, setCustomEndpoint,
+    settingsOpen,
+    closeSettings,
+    provider,
+    model,
+    apiKeys,
+    customEndpoints,
+    accountIds,
+    setApiKey,
+    setProvider,
+    setModel,
+    setCustomEndpoint,
+    setAccountId,
   } = useStore();
 
-  const [localKey, setLocalKey] = useState('');
-  const [localEndpoint, setLocalEndpoint] = useState('');
+  const [localKey, setLocalKey] = useState("");
+  const [localEndpoint, setLocalEndpoint] = useState("");
+  const [localAccountId, setLocalAccountId] = useState("");
   const [localProvider, setLocalProvider] = useState(provider);
   const [localModel, setLocalModel] = useState(model);
   const [showKey, setShowKey] = useState(false);
   const [models, setModels] = useState([]);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelsError, setModelsError] = useState(null);
-  const [modelSearch, setModelSearch] = useState('');
+  const [modelSearch, setModelSearch] = useState("");
 
   useEffect(() => {
     if (settingsOpen) {
       setLocalProvider(provider);
       setLocalModel(model);
-      setLocalKey(apiKeys[provider] || '');
-      setLocalEndpoint(customEndpoints[provider] || '');
+      setLocalKey(apiKeys[provider] || "");
+      setLocalEndpoint(customEndpoints[provider] || "");
+      setLocalAccountId(accountIds[provider] || "");
       setShowKey(false);
-      setModelSearch('');
+      setModelSearch("");
     }
-  }, [settingsOpen, provider, model, apiKeys, customEndpoints]);
+  }, [settingsOpen, provider, model, apiKeys, customEndpoints, accountIds]);
 
   const loadModels = useCallback(async () => {
-    if (!localKey && !PROVIDERS[localProvider]?.defaultModels?.length) {
+    const cfg = PROVIDERS[localProvider];
+    const needsKey = cfg?.needsKey && !localKey;
+    const needsAccountId = cfg?.needsAccountId && !localAccountId;
+    if (needsKey || needsAccountId) {
       setModels([]);
       return;
     }
     setModelsLoading(true);
     setModelsError(null);
     try {
-      const result = await fetchModels(localProvider, localKey, localEndpoint);
+      const extra = cfg?.needsAccountId
+        ? { accountId: localAccountId }
+        : undefined;
+      const result = await fetchModels(
+        localProvider,
+        localKey,
+        localEndpoint,
+        extra,
+      );
       if (result && result.length > 0) {
         setModels(result);
       } else {
@@ -48,16 +70,16 @@ export default function SettingsModal() {
           setModels(defaults);
         } else {
           setModels([]);
-          setModelsError('No models found. Check your credentials.');
+          setModelsError("No models found. Check your credentials.");
         }
       }
     } catch {
       setModels([]);
-      setModelsError('Failed to fetch models.');
+      setModelsError("Failed to fetch models.");
     } finally {
       setModelsLoading(false);
     }
-  }, [localProvider, localKey, localEndpoint]);
+  }, [localProvider, localKey, localEndpoint, localAccountId]);
 
   useEffect(() => {
     if (settingsOpen) {
@@ -69,11 +91,12 @@ export default function SettingsModal() {
     const config = PROVIDERS[p];
     if (config?.disabled) return;
     setLocalProvider(p);
-    setLocalModel('');
-    setLocalKey(apiKeys[p] || '');
-    setLocalEndpoint(customEndpoints[p] || '');
+    setLocalModel("");
+    setLocalKey(apiKeys[p] || "");
+    setLocalEndpoint(customEndpoints[p] || "");
+    setLocalAccountId(accountIds[p] || "");
     setModels([]);
-    setModelSearch('');
+    setModelSearch("");
   };
 
   const handleSave = () => {
@@ -81,24 +104,42 @@ export default function SettingsModal() {
     setApiKey(localProvider, localKey);
     setModel(localModel);
     setCustomEndpoint(localProvider, localEndpoint);
+    setAccountId(localProvider, localAccountId);
     closeSettings();
   };
 
-  const filteredModels = models.filter((m) =>
-    m.name.toLowerCase().includes(modelSearch.toLowerCase()) ||
-    m.id.toLowerCase().includes(modelSearch.toLowerCase())
+  const filteredModels = models.filter(
+    (m) =>
+      m.name.toLowerCase().includes(modelSearch.toLowerCase()) ||
+      m.id.toLowerCase().includes(modelSearch.toLowerCase()),
   );
 
   const selectedModel = models.find((m) => m.id === localModel);
   const config = PROVIDERS[localProvider];
 
   return (
-    <div className={`modal-overlay${settingsOpen ? ' open' : ''}`} onClick={(e) => e.target === e.currentTarget && closeSettings()}>
+    <div
+      className={`modal-overlay${settingsOpen ? " open" : ""}`}
+      onClick={(e) => e.target === e.currentTarget && closeSettings()}
+    >
       <div className="modal">
         <div className="modal-header">
           <h3>API Configuration</h3>
-          <button className="modal-close" onClick={closeSettings} aria-label="Close modal">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          <button
+            className="modal-close"
+            onClick={closeSettings}
+            aria-label="Close modal"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
           </button>
         </div>
         <div className="modal-body">
@@ -108,13 +149,17 @@ export default function SettingsModal() {
               {Object.entries(PROVIDERS).map(([key, p]) => (
                 <div
                   key={key}
-                  className={`provider-card${localProvider === key ? ' selected' : ''}${p.disabled ? ' disabled' : ''}`}
+                  className={`provider-card${localProvider === key ? " selected" : ""}${p.disabled ? " disabled" : ""}`}
                   onClick={() => handleProviderChange(key)}
-                  title={p.disabled ? p.disabledReason : ''}
+                  title={p.disabled ? p.disabledReason : ""}
                 >
                   <div className="provider-card-name">{p.name}</div>
                   <div className="provider-card-desc">{p.description}</div>
-                  {p.disabled && <div className="provider-card-badge">{p.disabledReason}</div>}
+                  {p.disabled && (
+                    <div className="provider-card-badge">
+                      {p.disabledReason}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -124,25 +169,77 @@ export default function SettingsModal() {
             <label className="form-label">API Key</label>
             <div className="api-key-row">
               <input
-                type={showKey ? 'text' : 'password'}
+                type={showKey ? "text" : "password"}
                 className="form-input"
                 value={localKey}
                 onChange={(e) => setLocalKey(e.target.value)}
-                placeholder={localProvider === 'groq' ? 'gsk_...' : 'sk-...'}
+                placeholder={
+                  localProvider === "groq"
+                    ? "gsk_..."
+                    : localProvider === "cloudflare_ai"
+                      ? "cfut_..."
+                      : "sk-..."
+                }
                 autoComplete="off"
               />
-              <button className="api-key-toggle" onClick={() => setShowKey(!showKey)} aria-label="Toggle key visibility">
+              <button
+                className="api-key-toggle"
+                onClick={() => setShowKey(!showKey)}
+                aria-label="Toggle key visibility"
+              >
                 {showKey ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  >
+                    <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </svg>
                 ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  >
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
                 )}
               </button>
             </div>
-            <div className="form-hint">Your key stays local — never sent to any server except the provider API.</div>
+            <div className="form-hint">
+              Your key stays local — never sent to any server except the
+              provider API.
+            </div>
           </div>
 
-          {localProvider === 'openai_compat' && (
+          {localProvider === "cloudflare_ai" && (
+            <div className="form-group">
+              <label className="form-label">Account ID</label>
+              <input
+                type="text"
+                className="form-input"
+                value={localAccountId}
+                onChange={(e) => setLocalAccountId(e.target.value)}
+                placeholder="fe27f40f123542c95f623461d1a49a06"
+                autoComplete="off"
+              />
+              <div className="form-hint">
+                Found in the Cloudflare dashboard URL or
+                <code> /accounts/&lt;id&gt;/...</code>. Required to list and run
+                models.
+              </div>
+            </div>
+          )}
+
+          {localProvider === "openai_compat" && (
             <div className="form-group">
               <label className="form-label">Endpoint</label>
               <input
@@ -152,7 +249,10 @@ export default function SettingsModal() {
                 onChange={(e) => setLocalEndpoint(e.target.value)}
                 placeholder="https://api.example.com/v1/chat/completions"
               />
-              <div className="form-hint">Enter your OpenAI-compatible endpoint. Models will be fetched from it.</div>
+              <div className="form-hint">
+                Enter your OpenAI-compatible endpoint. Models will be fetched
+                from it.
+              </div>
             </div>
           )}
 
@@ -162,38 +262,63 @@ export default function SettingsModal() {
               <input
                 type="text"
                 className="form-input model-search"
-                placeholder={modelsLoading ? 'Loading models...' : 'Search models...'}
+                placeholder={
+                  modelsLoading ? "Loading models..." : "Search models..."
+                }
                 value={modelSearch}
                 onChange={(e) => setModelSearch(e.target.value)}
                 disabled={modelsLoading}
               />
               {modelsLoading && (
                 <div className="model-loading">
-                  <div className="typing-indicator"><span></span><span></span><span></span></div>
+                  <div className="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
                 </div>
               )}
               {modelsError && !modelsLoading && (
-                <div className="form-hint" style={{ color: 'var(--danger)' }}>{modelsError}</div>
+                <div className="form-hint" style={{ color: "var(--danger)" }}>
+                  {modelsError}
+                </div>
               )}
-              {!modelsLoading && !modelsError && filteredModels.length === 0 && localKey && (
-                <div className="form-hint">No models found. Try a different search.</div>
-              )}
+              {!modelsLoading &&
+                !modelsError &&
+                filteredModels.length === 0 &&
+                localKey && (
+                  <div className="form-hint">
+                    No models found. Try a different search.
+                  </div>
+                )}
               {!modelsLoading && filteredModels.length > 0 && (
                 <div className="model-list">
                   {filteredModels.map((m) => (
                     <div
                       key={m.id}
-                      className={`model-option${localModel === m.id ? ' selected' : ''}`}
-                      onClick={() => { setLocalModel(m.id); setModelSearch(''); }}
+                      className={`model-option${localModel === m.id ? " selected" : ""}`}
+                      onClick={() => {
+                        setLocalModel(m.id);
+                        setModelSearch("");
+                      }}
                     >
                       <div className="model-option-name">{m.name}</div>
                       <div className="model-option-meta">
-                        {m.context && <span>{(m.context / 1000).toFixed(0)}K ctx</span>}
+                        {m.context && (
+                          <span>{(m.context / 1000).toFixed(0)}K ctx</span>
+                        )}
                         {m.pricing && (
                           <span>
-                            ${((parseFloat(m.pricing.prompt) || 0) * 1000000).toFixed(2)}/M in
-                            {' · '}
-                            ${((parseFloat(m.pricing.completion) || 0) * 1000000).toFixed(2)}/M out
+                            $
+                            {(
+                              (parseFloat(m.pricing.prompt) || 0) * 1000000
+                            ).toFixed(2)}
+                            /M in
+                            {" · "}$
+                            {(
+                              (parseFloat(m.pricing.completion) || 0) * 1000000
+                            ).toFixed(2)}
+                            /M out
                           </span>
                         )}
                       </div>
@@ -204,15 +329,26 @@ export default function SettingsModal() {
               {selectedModel && (
                 <div className="model-selected-badge">
                   Selected: {selectedModel.name}
-                  <button className="model-clear-btn" onClick={() => setLocalModel('')}>×</button>
+                  <button
+                    className="model-clear-btn"
+                    onClick={() => setLocalModel("")}
+                  >
+                    ×
+                  </button>
                 </div>
               )}
             </div>
           </div>
         </div>
         <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={closeSettings}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={!localModel}>
+          <button className="btn btn-ghost" onClick={closeSettings}>
+            Cancel
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={handleSave}
+            disabled={!localModel}
+          >
             Save Config
           </button>
         </div>

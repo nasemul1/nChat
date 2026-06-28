@@ -1,29 +1,66 @@
-import { PROVIDERS } from './providers';
+import { PROVIDERS } from "./providers";
 
 function toOpenAIContent(content, files) {
   if (!files || files.length === 0) return content;
-  const parts = [{ type: 'text', text: content }];
+  const parts = [{ type: "text", text: content }];
   for (const f of files) {
-    if (f.type.startsWith('image/')) {
-      parts.push({ type: 'image_url', image_url: { url: f.dataUrl } });
+    if (f.type.startsWith("image/")) {
+      parts.push({ type: "image_url", image_url: { url: f.dataUrl } });
     } else {
-      parts.push({ type: 'text', text: `[File: ${f.name}]\n${f.dataUrl}` });
+      parts.push({ type: "text", text: `[File: ${f.name}]\n${f.dataUrl}` });
     }
   }
   return parts;
 }
 
-export async function sendMessage({ provider, model, apiKey, messages, endpoint, signal }) {
+export async function sendMessage({
+  provider,
+  model,
+  apiKey,
+  accountId,
+  messages,
+  endpoint,
+  signal,
+}) {
   const config = PROVIDERS[provider];
   if (!config) throw new Error(`Unknown provider: ${provider}`);
-  return sendOpenAICompatible({ provider, model, apiKey, messages, endpoint, signal });
+  return sendOpenAICompatible({
+    provider,
+    model,
+    apiKey,
+    accountId,
+    messages,
+    endpoint,
+    signal,
+  });
 }
 
-async function sendOpenAICompatible({ provider, model, apiKey, messages, endpoint, signal }) {
+async function sendOpenAICompatible({
+  provider,
+  model,
+  apiKey,
+  accountId,
+  messages,
+  endpoint,
+  signal,
+}) {
   const config = PROVIDERS[provider];
-  const url = endpoint || config.defaultEndpoint;
+  let url = endpoint || config.defaultEndpoint;
 
-  if (!url) throw new Error('No endpoint configured. Set a custom endpoint in Settings.');
+  if (provider === "cloudflare_ai" && !endpoint) {
+    if (accountId) {
+      url = `/api/cf/client/v4/accounts/${accountId}/ai/v1/chat/completions`;
+    } else {
+      throw new Error(
+        "Cloudflare Account ID is required. Set it in Settings.",
+      );
+    }
+  }
+
+  if (!url)
+    throw new Error(
+      "No endpoint configured. Set a custom endpoint in Settings.",
+    );
 
   const formatted = messages.map(({ role, content, files }) => ({
     role,
@@ -31,38 +68,50 @@ async function sendOpenAICompatible({ provider, model, apiKey, messages, endpoin
   }));
 
   const res = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-      ...(provider === 'openrouter' ? { 'HTTP-Referer': window.location.origin } : {}),
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      ...(provider === "openrouter"
+        ? { "HTTP-Referer": window.location.origin }
+        : {}),
     },
     body: JSON.stringify({ model, messages: formatted, stream: true }),
     signal,
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || `API error ${res.status}`);
+    const errText = await res.text().catch(() => "");
+    let errMsg = `API error ${res.status}`;
+    try {
+      const err = JSON.parse(errText);
+      errMsg = err.error?.message || err.detail || errMsg;
+    } catch {
+      if (errText) errMsg += `: ${errText}`;
+    }
+    throw new Error(errMsg);
   }
 
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
-  let buffer = '';
+  let buffer = "";
 
   const transform = new TransformStream({
     transform(chunk, controller) {
       buffer += decoder.decode(chunk, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
       for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
+        if (!line.startsWith("data: ")) continue;
         const data = line.slice(6).trim();
-        if (data === '[DONE]') continue;
+        if (data === "[DONE]") continue;
         try {
           const parsed = JSON.parse(data);
           if (parsed.error) {
-            const msg = parsed.error.message || parsed.error.detail || `Provider error ${parsed.error.code || 'unknown'}`;
+            const msg =
+              parsed.error.message ||
+              parsed.error.detail ||
+              `Provider error ${parsed.error.code || "unknown"}`;
             controller.error(new Error(msg));
             return;
           }
@@ -71,7 +120,7 @@ async function sendOpenAICompatible({ provider, model, apiKey, messages, endpoin
             controller.enqueue(encoder.encode(delta));
           }
         } catch (e) {
-          if (e.message && !e.message.includes('JSON')) {
+          if (e.message && !e.message.includes("JSON")) {
             controller.error(e);
             return;
           }
@@ -84,11 +133,11 @@ async function sendOpenAICompatible({ provider, model, apiKey, messages, endpoin
 }
 
 export async function streamToString(stream) {
-  if (!stream) throw new Error('No stream provided');
+  if (!stream) throw new Error("No stream provided");
 
   const reader = stream.getReader();
   const decoder = new TextDecoder();
-  let result = '';
+  let result = "";
 
   try {
     while (true) {
@@ -98,7 +147,7 @@ export async function streamToString(stream) {
     }
   } catch (e) {
     if (result) return result;
-    throw new Error(e.message || 'Stream read failed');
+    throw new Error(e.message || "Stream read failed");
   } finally {
     reader.releaseLock();
   }
