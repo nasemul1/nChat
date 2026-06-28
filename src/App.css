@@ -1009,6 +1009,13 @@
 .attach-btn:hover {
   color: var(--fg);
 }
+.attach-btn.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.attach-btn.disabled:hover {
+  color: var(--muted);
+}
 
 .input-row {
   display: flex;

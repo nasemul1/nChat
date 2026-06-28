@@ -4,7 +4,7 @@ import { fetchModels } from "../utils/fetchModels";
 import useStore from "../store";
 
 export default function ModelPickerModal() {
-  const { provider, model, apiKeys, customEndpoints, accountIds, setModel } = useStore();
+  const { provider, model, apiKeys, customEndpoints, accountIds, setModel, setModelSupportsFiles } = useStore();
   const [open, setOpen] = useState(false);
   const [models, setModels] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -63,6 +63,8 @@ export default function ModelPickerModal() {
 
   const handleSelect = (id) => {
     setModel(id);
+    const selected = models.find((m) => m.id === id);
+    setModelSupportsFiles(selected?.supportsFiles ?? true);
     setOpen(false);
   };
 

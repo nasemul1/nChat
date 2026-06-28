@@ -12,18 +12,24 @@ export const PROVIDERS = {
           const outMods = m.architecture?.output_modalities || [];
           return outMods.includes("text");
         })
-        .map((m) => ({
-          id: m.id,
-          name: m.name || m.id,
-          context: m.context_length,
-          pricing: m.pricing,
-        }));
+        .map((m) => {
+          const inMods = m.architecture?.input_modalities || [];
+          const hasImageInput = inMods.includes("image") || inMods.includes("image_url");
+          return {
+            id: m.id,
+            name: m.name || m.id,
+            context: m.context_length,
+            pricing: m.pricing,
+            supportsFiles: hasImageInput,
+          };
+        });
       if (!models.some((m) => m.id === "openrouter/auto")) {
         models.unshift({
           id: "openrouter/auto",
           name: "Auto (Router)",
           context: null,
           pricing: null,
+          supportsFiles: false,
         });
       }
       return models;
@@ -50,6 +56,7 @@ export const PROVIDERS = {
           name: m.id,
           context: m.context_window || null,
           pricing: null,
+          supportsFiles: false,
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
     },
@@ -69,6 +76,7 @@ export const PROVIDERS = {
           name: m.name || m.id,
           context: m.context_window || null,
           pricing: null,
+          supportsFiles: /mistral.*vision|pixtral|large.*vision/i.test(m.id),
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
     },
@@ -87,6 +95,7 @@ export const PROVIDERS = {
           name: m.id,
           context: null,
           pricing: null,
+          supportsFiles: false,
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
     },
@@ -115,13 +124,19 @@ export const PROVIDERS = {
       });
       const source = filtered.length > 0 ? filtered : list;
       return source
-        .map((m) => ({
-          id: m.name || m.id,
-          name: m.name || m.id,
-          context: null,
-          pricing: null,
-          task: m.task?.name || null,
-        }))
+        .map((m) => {
+          const hasVision = (m.properties || []).some(
+            (p) => p.property_id === "vision" && p.value === "true",
+          );
+          return {
+            id: m.name || m.id,
+            name: m.name || m.id,
+            context: null,
+            pricing: null,
+            task: m.task?.name || null,
+            supportsFiles: hasVision,
+          };
+        })
         .sort((a, b) => a.name.localeCompare(b.name));
     },
   },
@@ -139,6 +154,7 @@ export const PROVIDERS = {
           name: m.id,
           context: null,
           pricing: null,
+          supportsFiles: false,
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
     },

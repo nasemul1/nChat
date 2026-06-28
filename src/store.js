@@ -19,6 +19,7 @@ const saveState = (state) => {
       apiKeys: state.apiKeys,
       customEndpoints: state.customEndpoints,
       accountIds: state.accountIds,
+      modelSupportsFiles: state.modelSupportsFiles,
     }));
   } catch {}
 };
@@ -34,6 +35,7 @@ const getInitial = () => {
     apiKeys: {},
     customEndpoints: {},
     accountIds: {},
+    modelSupportsFiles: true,
   };
 };
 
@@ -115,6 +117,12 @@ const useStore = create((set, get) => ({
   apiKeys: initial.apiKeys || {},
   customEndpoints: initial.customEndpoints || {},
   accountIds: initial.accountIds || {},
+  modelSupportsFiles: initial.modelSupportsFiles ?? true,
+
+  setModelSupportsFiles: (val) => {
+    set({ modelSupportsFiles: val });
+    setTimeout(() => saveState(get()), 0);
+  },
 
   setApiKey: (provider, key) => {
     set((s) => {

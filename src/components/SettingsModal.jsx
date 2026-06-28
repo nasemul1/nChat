@@ -17,6 +17,7 @@ export default function SettingsModal() {
     setModel,
     setCustomEndpoint,
     setAccountId,
+    setModelSupportsFiles,
   } = useStore();
 
   const [localKey, setLocalKey] = useState("");
@@ -105,6 +106,8 @@ export default function SettingsModal() {
     setModel(localModel);
     setCustomEndpoint(localProvider, localEndpoint);
     setAccountId(localProvider, localAccountId);
+    const selected = models.find((m) => m.id === localModel);
+    setModelSupportsFiles(selected?.supportsFiles ?? true);
     closeSettings();
   };
 
@@ -143,6 +146,9 @@ export default function SettingsModal() {
           </button>
         </div>
         <div className="modal-body">
+          <div className="form-hint" style={{ marginBottom: 12 }}>
+            ApiKey/data will not be collected by nChat. It just saves data in your local machine.
+          </div>
           <div className="form-group">
             <label className="form-label">Provider</label>
             <div className="provider-grid">

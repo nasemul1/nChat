@@ -147,7 +147,7 @@ function MessageBubble({ role, content, time, files }) {
 export default function ChatArea() {
   const {
     conversations, activeConvo, provider, model,
-    apiKeys, customEndpoints, accountIds, addMessage,
+    apiKeys, customEndpoints, accountIds, modelSupportsFiles, addMessage,
   } = useStore();
 
   const [input, setInput] = useState('');
@@ -157,6 +157,13 @@ export default function ChatArea() {
   const abortRef = useRef(null);
 
   const convo = conversations.find((c) => c.id === activeConvo);
+
+  // Clear attached files when switching to a non-vision model
+  useEffect(() => {
+    if (!modelSupportsFiles && files.length > 0) {
+      setFiles([]);
+    }
+  }, [modelSupportsFiles]);
 
   // Auto-scroll
   useEffect(() => {
@@ -258,7 +265,7 @@ export default function ChatArea() {
   return (
     <main className="main">
       <div className="main-header">
-        <button className="menu-toggle" onClick={() => useStore.getState().toggleSidebar(true)} aria-label="Toggle sidebar">
+        <button className="menu-toggle" onClick={() => useStore.getState().toggleSidebar()} aria-label="Toggle sidebar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
         </button>
         <div className="header-title">{convo?.title || 'New conversation'}</div>
@@ -285,7 +292,7 @@ export default function ChatArea() {
         <div className="input-wrapper">
           <AttachmentPreview files={files} setFiles={setFiles} />
           <div className="input-row">
-            <FileAttachment files={files} setFiles={setFiles} />
+            <FileAttachment files={files} setFiles={setFiles} supportsFiles={modelSupportsFiles} />
             <textarea
               className="input-field"
               rows={1}
