@@ -12,6 +12,8 @@ const loadState = () => {
 const saveState = (state) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      projects: state.projects,
+      activeProject: state.activeProject,
       conversations: state.conversations,
       activeConvo: state.activeConvo,
       provider: state.provider,
@@ -30,6 +32,8 @@ const getInitial = () => {
   const saved = loadState();
   if (saved) return saved;
   return {
+    projects: [],
+    activeProject: null,
     conversations: [],
     activeConvo: null,
     provider: 'openrouter',
@@ -51,6 +55,53 @@ const useStore = create((set, get) => ({
     sidebarOpen: open !== undefined ? open : !s.sidebarOpen,
   })),
 
+  projects: initial.projects || [],
+  activeProject: initial.activeProject || null,
+
+  setActiveProject: (id) => {
+    set({ activeProject: id, activeConvo: null });
+    setTimeout(() => saveState(get()), 0);
+  },
+
+  createProject: (name) => {
+    const id = String(Date.now());
+    const project = {
+      id,
+      name: name || 'New Project',
+      createdAt: new Date().toISOString(),
+    };
+    set((s) => {
+      const projects = [project, ...s.projects];
+      const newState = { projects, activeProject: id, activeConvo: null };
+      setTimeout(() => saveState({ ...s, ...newState }), 0);
+      return newState;
+    });
+    return id;
+  },
+
+  renameProject: (id, name) => {
+    set((s) => {
+      const projects = s.projects.map((p) => p.id === id ? { ...p, name } : p);
+      const newState = { projects };
+      setTimeout(() => saveState({ ...s, ...newState }), 0);
+      return newState;
+    });
+  },
+
+  deleteProject: (id) => {
+    set((s) => {
+      const projects = s.projects.filter((p) => p.id !== id);
+      const conversations = s.conversations.filter((c) => c.projectId !== id);
+      const activeProject = s.activeProject === id ? null : s.activeProject;
+      const activeConvo = s.activeConvo && !conversations.find((c) => c.id === s.activeConvo)
+        ? null
+        : s.activeConvo;
+      const newState = { projects, conversations, activeProject, activeConvo };
+      setTimeout(() => saveState({ ...s, ...newState }), 0);
+      return newState;
+    });
+  },
+
   conversations: initial.conversations || [],
   activeConvo: initial.activeConvo || null,
 
@@ -61,9 +112,12 @@ const useStore = create((set, get) => ({
 
   createConversation: () => {
     const id = String(Date.now());
+    const activeProject = get().activeProject;
     set((s) => {
+      const conversation = { id, title: 'New conversation', messages: [] };
+      if (activeProject) conversation.projectId = activeProject;
       const newState = {
-        conversations: [{ id, title: 'New conversation', messages: [] }, ...s.conversations],
+        conversations: [conversation, ...s.conversations],
         activeConvo: id,
       };
       setTimeout(() => saveState({ ...s, ...newState }), 0);

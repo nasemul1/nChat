@@ -115,6 +115,124 @@
   text-transform: uppercase;
   color: var(--muted);
   padding: 16px 16px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.project-add-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.project-add-btn:hover {
+  color: var(--fg);
+  border-color: var(--border-strong);
+}
+
+.new-project-row {
+  padding: 0 8px 6px;
+}
+
+.project-name-input {
+  width: 100%;
+  padding: 6px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.project-name-input:focus {
+  border-color: var(--border-strong);
+}
+.project-name-input.inline {
+  padding: 2px 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.project-list {
+  padding: 0 8px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.project-item {
+  padding: 7px 10px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.12s, border-color 0.12s;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+.project-item:hover {
+  background: var(--surface-hover);
+  border-color: var(--border);
+}
+.project-item.active {
+  background: var(--surface-active);
+  border-color: var(--border-strong);
+}
+.project-item svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.project-item.active svg {
+  color: var(--accent);
+}
+.project-item-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+.project-item-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.project-item-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.project-item:hover .project-item-actions {
+  opacity: 1;
+}
+.project-action-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  transition: color 0.15s;
+}
+.project-action-btn:hover {
+  color: var(--fg);
+}
+.project-action-btn.danger:hover {
+  color: var(--danger);
 }
 
 .convo-list {
