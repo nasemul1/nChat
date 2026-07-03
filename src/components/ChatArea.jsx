@@ -1,8 +1,66 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
+import oneDark from 'react-syntax-highlighter/dist/esm/styles/prism/one-dark';
+import oneLight from 'react-syntax-highlighter/dist/esm/styles/prism/one-light';
 import remarkGfm from 'remark-gfm';
 import { PROVIDERS } from '../utils/providers';
-import { sendMessage, streamToString } from '../utils/api';
+import jsx from 'react-syntax-highlighter/dist/esm/languages/prism/jsx';
+import javascript from 'react-syntax-highlighter/dist/esm/languages/prism/javascript';
+import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript';
+import tsx from 'react-syntax-highlighter/dist/esm/languages/prism/tsx';
+import python from 'react-syntax-highlighter/dist/esm/languages/prism/python';
+import cpp from 'react-syntax-highlighter/dist/esm/languages/prism/cpp';
+import c from 'react-syntax-highlighter/dist/esm/languages/prism/c';
+import java from 'react-syntax-highlighter/dist/esm/languages/prism/java';
+import rust from 'react-syntax-highlighter/dist/esm/languages/prism/rust';
+import go from 'react-syntax-highlighter/dist/esm/languages/prism/go';
+import ruby from 'react-syntax-highlighter/dist/esm/languages/prism/ruby';
+import php from 'react-syntax-highlighter/dist/esm/languages/prism/php';
+import swift from 'react-syntax-highlighter/dist/esm/languages/prism/swift';
+import kotlin from 'react-syntax-highlighter/dist/esm/languages/prism/kotlin';
+import css from 'react-syntax-highlighter/dist/esm/languages/prism/css';
+import json from 'react-syntax-highlighter/dist/esm/languages/prism/json';
+import bash from 'react-syntax-highlighter/dist/esm/languages/prism/bash';
+import shell from 'react-syntax-highlighter/dist/esm/languages/prism/shell-session';
+import sql from 'react-syntax-highlighter/dist/esm/languages/prism/sql';
+import markdown from 'react-syntax-highlighter/dist/esm/languages/prism/markdown';
+import yaml from 'react-syntax-highlighter/dist/esm/languages/prism/yaml';
+import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup';
+import docker from 'react-syntax-highlighter/dist/esm/languages/prism/docker';
+import graphql from 'react-syntax-highlighter/dist/esm/languages/prism/graphql';
+import diff from 'react-syntax-highlighter/dist/esm/languages/prism/diff';
+
+SyntaxHighlighter.registerLanguage('jsx', jsx);
+SyntaxHighlighter.registerLanguage('javascript', javascript);
+SyntaxHighlighter.registerLanguage('js', javascript);
+SyntaxHighlighter.registerLanguage('typescript', typescript);
+SyntaxHighlighter.registerLanguage('ts', typescript);
+SyntaxHighlighter.registerLanguage('tsx', tsx);
+SyntaxHighlighter.registerLanguage('python', python);
+SyntaxHighlighter.registerLanguage('py', python);
+SyntaxHighlighter.registerLanguage('cpp', cpp);
+SyntaxHighlighter.registerLanguage('c', c);
+SyntaxHighlighter.registerLanguage('java', java);
+SyntaxHighlighter.registerLanguage('rust', rust);
+SyntaxHighlighter.registerLanguage('go', go);
+SyntaxHighlighter.registerLanguage('ruby', ruby);
+SyntaxHighlighter.registerLanguage('php', php);
+SyntaxHighlighter.registerLanguage('swift', swift);
+SyntaxHighlighter.registerLanguage('kotlin', kotlin);
+SyntaxHighlighter.registerLanguage('css', css);
+SyntaxHighlighter.registerLanguage('json', json);
+SyntaxHighlighter.registerLanguage('bash', bash);
+SyntaxHighlighter.registerLanguage('shell', shell);
+SyntaxHighlighter.registerLanguage('sql', sql);
+SyntaxHighlighter.registerLanguage('markdown', markdown);
+SyntaxHighlighter.registerLanguage('yaml', yaml);
+SyntaxHighlighter.registerLanguage('yml', yaml);
+SyntaxHighlighter.registerLanguage('xml', markup);
+SyntaxHighlighter.registerLanguage('html', markup);
+SyntaxHighlighter.registerLanguage('docker', docker);
+SyntaxHighlighter.registerLanguage('graphql', graphql);
+SyntaxHighlighter.registerLanguage('diff', diff);
 import useStore from '../store';
 import ModelPickerModal from './ModelPickerModal';
 import FileAttachment, { AttachmentPreview } from './FileAttachment';
@@ -22,6 +80,9 @@ function CopyButton({ text }) {
 }
 
 function MarkdownContent({ content }) {
+  const theme = useStore((s) => s.theme);
+  const highlightStyle = theme === 'dark' ? oneDark : oneLight;
+
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -33,11 +94,25 @@ function MarkdownContent({ content }) {
             return (
               <div className="code-block-wrapper">
                 <CopyButton text={codeString} />
-                <pre className={className}>
-                  <code className={className} {...props}>
-                    {codeString}
-                  </code>
-                </pre>
+                <SyntaxHighlighter
+                  style={highlightStyle}
+                  language={match?.[1] || 'text'}
+                  PreTag="div"
+                  codeTagProps={{
+                    style: { background: 'transparent' },
+                  }}
+                  customStyle={{
+                    margin: 0,
+                    borderRadius: 0,
+                    padding: '16px',
+                    fontSize: '13px',
+                    lineHeight: '1.5',
+                    backgroundColor: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  {codeString}
+                </SyntaxHighlighter>
               </div>
             );
           }
