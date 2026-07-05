@@ -5,6 +5,7 @@ import oneDark from 'react-syntax-highlighter/dist/esm/styles/prism/one-dark';
 import oneLight from 'react-syntax-highlighter/dist/esm/styles/prism/one-light';
 import remarkGfm from 'remark-gfm';
 import { PROVIDERS } from '../utils/providers';
+import { sendMessage, streamToString } from '../utils/api';
 import jsx from 'react-syntax-highlighter/dist/esm/languages/prism/jsx';
 import javascript from 'react-syntax-highlighter/dist/esm/languages/prism/javascript';
 import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript';
