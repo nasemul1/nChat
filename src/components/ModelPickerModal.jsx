@@ -1,10 +1,21 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { PROVIDERS } from "../utils/providers";
 import { fetchModels } from "../utils/fetchModels";
 import useStore from "../store";
 
 export default function ModelPickerModal() {
-  const { provider, model, apiKeys, customEndpoints, accountIds, setModel, setModelSupportsFiles, recentModels, addRecentModel } = useStore();
+  const { provider, model, apiKeys, customEndpoints, accountIds, setModel, setModelSupportsFiles, recentModels, addRecentModel } = useStore(useShallow((s) => ({
+    provider: s.provider,
+    model: s.model,
+    apiKeys: s.apiKeys,
+    customEndpoints: s.customEndpoints,
+    accountIds: s.accountIds,
+    setModel: s.setModel,
+    setModelSupportsFiles: s.setModelSupportsFiles,
+    recentModels: s.recentModels,
+    addRecentModel: s.addRecentModel,
+  })));
   const [open, setOpen] = useState(false);
   const [models, setModels] = useState([]);
   const [loading, setLoading] = useState(false);

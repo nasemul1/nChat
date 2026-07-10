@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { PROVIDERS } from "../utils/providers";
 import { fetchModels } from "../utils/fetchModels";
 import useStore from "../store";
@@ -19,7 +20,22 @@ export default function SettingsModal() {
     setAccountId,
     setModelSupportsFiles,
     addRecentModel,
-  } = useStore();
+  } = useStore(useShallow((s) => ({
+    settingsOpen: s.settingsOpen,
+    closeSettings: s.closeSettings,
+    provider: s.provider,
+    model: s.model,
+    apiKeys: s.apiKeys,
+    customEndpoints: s.customEndpoints,
+    accountIds: s.accountIds,
+    setApiKey: s.setApiKey,
+    setProvider: s.setProvider,
+    setModel: s.setModel,
+    setCustomEndpoint: s.setCustomEndpoint,
+    setAccountId: s.setAccountId,
+    setModelSupportsFiles: s.setModelSupportsFiles,
+    addRecentModel: s.addRecentModel,
+  })));
 
   const [localKey, setLocalKey] = useState("");
   const [localEndpoint, setLocalEndpoint] = useState("");

@@ -1,9 +1,10 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, memo, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import oneDark from 'react-syntax-highlighter/dist/esm/styles/prism/one-dark';
 import oneLight from 'react-syntax-highlighter/dist/esm/styles/prism/one-light';
 import remarkGfm from 'remark-gfm';
+import { useShallow } from 'zustand/react/shallow';
 import { PROVIDERS } from '../utils/providers';
 import { sendMessage, streamToString } from '../utils/api';
 import jsx from 'react-syntax-highlighter/dist/esm/languages/prism/jsx';
@@ -66,76 +67,77 @@ import useStore from '../store';
 import ModelPickerModal from './ModelPickerModal';
 import FileAttachment, { AttachmentPreview } from './FileAttachment';
 
-function CopyButton({ text }) {
+const CopyButton = memo(function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
-  const handleCopy = () => {
+  const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
-  };
+  }, [text]);
   return (
     <button className="copy-code-btn" onClick={handleCopy}>
       {copied ? 'Copied' : 'Copy'}
     </button>
   );
-}
+});
 
-function MarkdownContent({ content }) {
+const MAX_CONTEXT_MESSAGES = 50;
+
+const MarkdownContent = memo(function MarkdownContent({ content }) {
   const theme = useStore((s) => s.theme);
   const highlightStyle = theme === 'dark' ? oneDark : oneLight;
 
+  const components = useMemo(() => ({
+    code({ node, inline, className, children, ...props }) {
+      const match = /language-(\w+)/.exec(className || '');
+      const codeString = String(children).replace(/\n$/, '');
+      if (!inline && (match || codeString.includes('\n'))) {
+        return (
+          <div className="code-block-wrapper">
+            <CopyButton text={codeString} />
+            <SyntaxHighlighter
+              style={highlightStyle}
+              language={match?.[1] || 'text'}
+              PreTag="div"
+              codeTagProps={{
+                style: { background: 'transparent' },
+              }}
+              customStyle={{
+                margin: 0,
+                borderRadius: 0,
+                padding: '16px',
+                fontSize: '13px',
+                lineHeight: '1.5',
+                backgroundColor: 'var(--bg)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              {codeString}
+            </SyntaxHighlighter>
+          </div>
+        );
+      }
+      return (
+        <code className={className} {...props}>
+          {children}
+        </code>
+      );
+    },
+    table({ children, ...props }) {
+      return (
+        <div style={{ overflowX: 'auto' }}>
+          <table {...props}>{children}</table>
+        </div>
+      );
+    },
+  }), [highlightStyle]);
+
   return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      components={{
-        code({ node, inline, className, children, ...props }) {
-          const match = /language-(\w+)/.exec(className || '');
-          const codeString = String(children).replace(/\n$/, '');
-          if (!inline && (match || codeString.includes('\n'))) {
-            return (
-              <div className="code-block-wrapper">
-                <CopyButton text={codeString} />
-                <SyntaxHighlighter
-                  style={highlightStyle}
-                  language={match?.[1] || 'text'}
-                  PreTag="div"
-                  codeTagProps={{
-                    style: { background: 'transparent' },
-                  }}
-                  customStyle={{
-                    margin: 0,
-                    borderRadius: 0,
-                    padding: '16px',
-                    fontSize: '13px',
-                    lineHeight: '1.5',
-                    backgroundColor: 'var(--bg)',
-                    border: '1px solid var(--border)',
-                  }}
-                >
-                  {codeString}
-                </SyntaxHighlighter>
-              </div>
-            );
-          }
-          return (
-            <code className={className} {...props}>
-              {children}
-            </code>
-          );
-        },
-        table({ children, ...props }) {
-          return (
-            <div style={{ overflowX: 'auto' }}>
-              <table {...props}>{children}</table>
-            </div>
-          );
-        },
-      }}
-    >
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
       {content}
     </ReactMarkdown>
   );
-}
+});
 
 function WelcomeScreen() {
   const createConversation = useStore((s) => s.createConversation);
@@ -172,7 +174,7 @@ function WelcomeScreen() {
   );
 }
 
-function TypingIndicator() {
+const TypingIndicator = memo(function TypingIndicator() {
   return (
     <div className="msg assistant">
       <div className="msg-avatar">AI</div>
@@ -184,9 +186,9 @@ function TypingIndicator() {
       </div>
     </div>
   );
-}
+});
 
-function MessageBubble({ role, content, time, files }) {
+const MessageBubble = memo(function MessageBubble({ role, content, time, files }) {
   const label = role === 'user' ? 'You' : 'AI';
   const avatar = role === 'user' ? 'Y' : 'AI';
   return (
@@ -218,14 +220,23 @@ function MessageBubble({ role, content, time, files }) {
       </div>
     </div>
   );
-}
+});
 
 export default function ChatArea() {
   const {
     conversations, activeConvo, provider, model,
-    apiKeys, customEndpoints, accountIds, modelSupportsFiles, addMessage,
+    apiKeys, modelSupportsFiles,
     theme, toggleTheme,
-  } = useStore();
+  } = useStore(useShallow((s) => ({
+    conversations: s.conversations,
+    activeConvo: s.activeConvo,
+    provider: s.provider,
+    model: s.model,
+    apiKeys: s.apiKeys,
+    modelSupportsFiles: s.modelSupportsFiles,
+    theme: s.theme,
+    toggleTheme: s.toggleTheme,
+  })));
 
   const [input, setInput] = useState('');
   const [files, setFiles] = useState([]);
@@ -247,7 +258,7 @@ export default function ChatArea() {
     if (chatAreaRef.current) {
       chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
     }
-  }, [convo?.messages?.length]);
+  }, [convo?.messages?.length, isLoading]);
 
   const handleSend = useCallback(async (text) => {
     if (!text.trim() && files.length === 0) return;
@@ -276,9 +287,10 @@ export default function ChatArea() {
     setFiles([]);
     setIsLoading(true);
 
+    const recentMessages = currentConvo.messages.slice(-MAX_CONTEXT_MESSAGES);
     const allMessages = [
       { role: 'system', content: 'You are a helpful AI assistant. Format your responses using markdown when appropriate, including code blocks with language specifications.' },
-      ...currentConvo.messages.map((m) => ({ role: m.role, content: m.content })),
+      ...recentMessages.map((m) => ({ role: m.role, content: m.content })),
       { role: 'user', content: text || 'Please analyze the attached files.', files: attachedFiles.length > 0 ? attachedFiles : undefined },
     ];
 
@@ -339,6 +351,14 @@ export default function ChatArea() {
 
   const canSend = (input.trim() || files.length > 0) && !isLoading;
 
+  const MAX_RENDERED_MESSAGES = 200;
+  const renderedMessages = useMemo(() => {
+    if (!convo) return [];
+    const msgs = convo.messages;
+    if (msgs.length <= MAX_RENDERED_MESSAGES) return msgs;
+    return msgs.slice(msgs.length - MAX_RENDERED_MESSAGES);
+  }, [convo?.messages]);
+
   return (
     <main className="main">
       <div className="main-header">
@@ -364,8 +384,13 @@ export default function ChatArea() {
       ) : (
         <div className="chat-area" ref={chatAreaRef}>
           <div className="chat-messages">
-            {convo.messages.map((m, i) => (
-              <MessageBubble key={i} role={m.role} content={m.content} time={m.time} files={m.files} />
+            {convo.messages.length > MAX_RENDERED_MESSAGES && (
+              <div className="msg-history-hint">
+                Showing last {MAX_RENDERED_MESSAGES} of {convo.messages.length} messages
+              </div>
+            )}
+            {renderedMessages.map((m, i) => (
+              <MessageBubble key={m.time + i} role={m.role} content={m.content} time={m.time} files={m.files} />
             ))}
             {isLoading && <TypingIndicator />}
           </div>

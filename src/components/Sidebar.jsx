@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import useStore from '../store';
 
 export default function Sidebar() {
@@ -7,7 +8,22 @@ export default function Sidebar() {
     setActiveConvo, createConversation, deleteConversation, openSettings,
     projects, activeProject, setActiveProject, createProject,
     renameProject, deleteProject,
-  } = useStore();
+  } = useStore(useShallow((s) => ({
+    sidebarOpen: s.sidebarOpen,
+    toggleSidebar: s.toggleSidebar,
+    conversations: s.conversations,
+    activeConvo: s.activeConvo,
+    setActiveConvo: s.setActiveConvo,
+    createConversation: s.createConversation,
+    deleteConversation: s.deleteConversation,
+    openSettings: s.openSettings,
+    projects: s.projects,
+    activeProject: s.activeProject,
+    setActiveProject: s.setActiveProject,
+    createProject: s.createProject,
+    renameProject: s.renameProject,
+    deleteProject: s.deleteProject,
+  })));
 
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');

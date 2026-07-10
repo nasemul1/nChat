@@ -9,23 +9,36 @@ const loadState = () => {
   } catch { return null; }
 };
 
+let saveTimer = null;
 const saveState = (state) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      projects: state.projects,
-      activeProject: state.activeProject,
-      conversations: state.conversations,
-      activeConvo: state.activeConvo,
-      provider: state.provider,
-      model: state.model,
-      apiKeys: state.apiKeys,
-      customEndpoints: state.customEndpoints,
-      accountIds: state.accountIds,
-      modelSupportsFiles: state.modelSupportsFiles,
-      theme: state.theme,
-      recentModels: state.recentModels,
-    }));
-  } catch {}
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      const conversations = state.conversations.map((c) => ({
+        ...c,
+        messages: c.messages.map((m) => {
+          if (m.files && m.files.length > 0) {
+            return { ...m, files: m.files.map((f) => ({ name: f.name, type: f.type, size: f.size })) };
+          }
+          return m;
+        }),
+      }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        projects: state.projects,
+        activeProject: state.activeProject,
+        conversations,
+        activeConvo: state.activeConvo,
+        provider: state.provider,
+        model: state.model,
+        apiKeys: state.apiKeys,
+        customEndpoints: state.customEndpoints,
+        accountIds: state.accountIds,
+        modelSupportsFiles: state.modelSupportsFiles,
+        theme: state.theme,
+        recentModels: state.recentModels,
+      }));
+    } catch {}
+  }, 300);
 };
 
 const getInitial = () => {
