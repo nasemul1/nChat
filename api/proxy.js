@@ -14,35 +14,32 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const { provider, path } = req.query;
+  const url = new URL(req.url, 'http://localhost');
+  const provider = url.searchParams.get('provider');
   const target = PROVIDER_MAP[provider];
 
   if (!target) {
     return res.status(404).json({ error: 'Unknown provider' });
   }
 
-  const pathStr = Array.isArray(path) ? path.join('/') : path;
-  const url = `${target}/${pathStr}`;
+  const path = url.searchParams.get('path') || '';
+  const upstreamUrl = `${target}/${path}`;
 
   const headers = {};
-  for (const key of ['authorization', 'content-type']) {
+  for (const key of ['authorization', 'content-type', 'accept']) {
     if (req.headers[key]) headers[key] = req.headers[key];
   }
 
   try {
-    const init = {
-      method: req.method,
-      headers,
-    };
+    const init = { method: req.method, headers };
 
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       const chunks = [];
       for await (const chunk of req) chunks.push(chunk);
-      const rawBody = Buffer.concat(chunks).toString();
-      init.body = rawBody;
+      init.body = Buffer.concat(chunks).toString();
     }
 
-    const upstream = await fetch(url, init);
+    const upstream = await fetch(upstreamUrl, init);
 
     res.setHeader('Access-Control-Allow-Origin', '*');
 
@@ -73,7 +70,5 @@ export default async function handler(req, res) {
 }
 
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+  api: { bodyParser: false },
 };

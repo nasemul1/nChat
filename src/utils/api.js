@@ -1,5 +1,15 @@
 import { PROVIDERS } from "./providers";
 
+function isVercel() {
+  return typeof window !== "undefined" && window.location.hostname !== "localhost";
+}
+
+function rewriteUrl(url, provider) {
+  if (!isVercel() || !url.startsWith("/api/")) return url;
+  const path = url.replace(`/api/${provider === "cf" ? "cf" : provider}/`, "");
+  return `/api/proxy?provider=${provider === "cf" ? "cf" : provider}&path=${encodeURIComponent(path)}`;
+}
+
 function toOpenAIContent(content, files) {
   if (!files || files.length === 0) return content;
   const parts = [{ type: "text", text: content }];
@@ -73,6 +83,8 @@ async function sendOpenAICompatible({
     throw new Error(
       "No endpoint configured. Set a custom endpoint in Settings.",
     );
+
+  url = rewriteUrl(url, provider);
 
   const formatted = messages.map(({ role, content, files }) => ({
     role,

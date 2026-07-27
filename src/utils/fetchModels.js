@@ -1,5 +1,15 @@
 import { PROVIDERS } from "./providers";
 
+function isVercel() {
+  return typeof window !== "undefined" && window.location.hostname !== "localhost";
+}
+
+function rewriteUrl(url, provider) {
+  if (!isVercel() || !url.startsWith("/api/")) return url;
+  const path = url.replace(`/api/${provider}/`, "");
+  return `/api/proxy?provider=${provider}&path=${encodeURIComponent(path)}`;
+}
+
 export async function fetchModels(providerKey, apiKey, customEndpoint, extra) {
   const provider = PROVIDERS[providerKey];
   if (!provider) return null;
@@ -31,6 +41,8 @@ export async function fetchModels(providerKey, apiKey, customEndpoint, extra) {
   }
 
   if (!url) return null;
+
+  url = rewriteUrl(url, providerKey === "cloudflare_ai" ? "cf" : providerKey);
 
   try {
     const headers = provider.modelsHeader ? provider.modelsHeader(apiKey) : {};
