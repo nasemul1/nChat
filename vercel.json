@@ -5,27 +5,7 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/api/airforce/:path*",
-      "destination": "https://api.airforce/:path*"
-    },
-    {
-      "source": "/api/ollama/:path*",
-      "destination": "https://ollama.com/:path*"
-    },
-    {
-      "source": "/api/cf/:path*",
-      "destination": "https://api.cloudflare.com/:path*"
-    },
-    {
-      "source": "/api/groq/:path*",
-      "destination": "https://api.groq.com/:path*"
-    },
-    {
-      "source": "/api/mistral/:path*",
-      "destination": "https://api.mistral.ai/:path*"
-    },
-    {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
