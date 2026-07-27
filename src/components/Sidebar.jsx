@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../store';
+import { exportBackup, readBackupFile } from '../utils/backup';
 
 export default function Sidebar() {
   const {
     sidebarOpen, toggleSidebar, conversations, activeConvo,
     setActiveConvo, createConversation, deleteConversation, openSettings,
     projects, activeProject, setActiveProject, createProject,
-    renameProject, deleteProject,
+    renameProject, deleteProject, importData,
   } = useStore(useShallow((s) => ({
     sidebarOpen: s.sidebarOpen,
     toggleSidebar: s.toggleSidebar,
@@ -23,6 +24,7 @@ export default function Sidebar() {
     createProject: s.createProject,
     renameProject: s.renameProject,
     deleteProject: s.deleteProject,
+    importData: s.importData,
   })));
 
   const [showNewProject, setShowNewProject] = useState(false);
@@ -31,6 +33,7 @@ export default function Sidebar() {
   const [editName, setEditName] = useState('');
   const newProjectRef = useRef(null);
   const editInputRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const filteredConversations = activeProject
     ? conversations.filter((c) => c.projectId === activeProject)
@@ -76,6 +79,27 @@ export default function Sidebar() {
     e.stopPropagation();
     if (window.confirm(`Delete "${project.name}" and all its conversations?`)) {
       deleteProject(project.id);
+    }
+  };
+
+  const handleExport = () => {
+    exportBackup(useStore.getState());
+  };
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const data = await readBackupFile(file);
+      const count = data.conversations.length;
+      if (!window.confirm(`Import ${count} conversation(s)? This will replace your current data.`)) {
+        return;
+      }
+      importData(data);
+    } catch (err) {
+      alert(err.message || 'Failed to import backup.');
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -222,6 +246,23 @@ export default function Sidebar() {
         </div>
 
         <div className="sidebar-footer">
+          <div className="backup-actions">
+            <button className="settings-btn" onClick={handleExport} title="Export backup">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export
+            </button>
+            <button className="settings-btn" onClick={() => fileInputRef.current?.click()} title="Import backup">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Import
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              style={{ display: 'none' }}
+              onChange={handleImport}
+            />
+          </div>
           <button className="settings-btn" onClick={openSettings}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
             API Keys

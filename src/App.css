@@ -327,6 +327,16 @@
 }
 .settings-btn svg { width: 14px; height: 14px; }
 
+.backup-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.backup-actions .settings-btn {
+  flex: 1;
+  justify-content: center;
+}
+
 /* ═══ MAIN AREA ═══ */
 .main {
   flex: 1;

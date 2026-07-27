@@ -247,6 +247,18 @@ const useStore = create((set, get) => ({
       return { recentModels };
     });
   },
+
+  importData: (data) => {
+    set((s) => {
+      const newState = {
+        conversations: data.conversations || s.conversations,
+        projects: data.projects || s.projects,
+        apiKeys: data.apiKeys || s.apiKeys,
+      };
+      setTimeout(() => saveState({ ...s, ...newState }), 0);
+      return newState;
+    });
+  },
 }));
 
 export default useStore;
