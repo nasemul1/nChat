@@ -14,20 +14,21 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const url = new URL(req.url, 'http://localhost');
-  const provider = url.searchParams.get('provider');
+  const urlObj = new URL(req.url, 'http://localhost');
+  const provider = urlObj.searchParams.get('provider');
+  const path = decodeURIComponent(urlObj.searchParams.get('path') || '');
   const target = PROVIDER_MAP[provider];
 
   if (!target) {
-    return res.status(404).json({ error: 'Unknown provider' });
+    return res.status(404).json({ error: `Unknown provider: ${provider}` });
   }
 
-  const path = url.searchParams.get('path') || '';
   const upstreamUrl = `${target}/${path}`;
 
   const headers = {};
-  for (const key of ['authorization', 'content-type', 'accept']) {
-    if (req.headers[key]) headers[key] = req.headers[key];
+  for (const [key, val] of Object.entries(req.headers)) {
+    if (key === 'host' || key === 'connection') continue;
+    headers[key] = val;
   }
 
   try {
@@ -40,19 +41,16 @@ export default async function handler(req, res) {
     }
 
     const upstream = await fetch(upstreamUrl, init);
+    const contentType = upstream.headers.get('content-type') || '';
 
     res.setHeader('Access-Control-Allow-Origin', '*');
-
-    const contentType = upstream.headers.get('content-type') || '';
 
     if (contentType.includes('text/event-stream')) {
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
-
       const reader = upstream.body.getReader();
       const decoder = new TextDecoder();
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;

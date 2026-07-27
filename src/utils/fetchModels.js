@@ -4,10 +4,20 @@ function isVercel() {
   return typeof window !== "undefined" && window.location.hostname !== "localhost";
 }
 
+const PROVIDER_PREFIX = {
+  ollama_cloud: "ollama",
+  cloudflare_ai: "cf",
+  openai_compat: "openai_compat",
+  airforce: "airforce",
+  groq: "groq",
+  mistral: "mistral",
+};
+
 function rewriteUrl(url, provider) {
   if (!isVercel() || !url.startsWith("/api/")) return url;
-  const path = url.replace(`/api/${provider}/`, "");
-  return `/api/proxy?provider=${provider}&path=${encodeURIComponent(path)}`;
+  const prefix = PROVIDER_PREFIX[provider] || provider;
+  const path = url.replace(`/api/${prefix}/`, "");
+  return `/api/proxy?provider=${prefix}&path=${encodeURIComponent(path)}`;
 }
 
 export async function fetchModels(providerKey, apiKey, customEndpoint, extra) {
@@ -42,7 +52,7 @@ export async function fetchModels(providerKey, apiKey, customEndpoint, extra) {
 
   if (!url) return null;
 
-  url = rewriteUrl(url, providerKey === "cloudflare_ai" ? "cf" : providerKey);
+  url = rewriteUrl(url, providerKey);
 
   try {
     const headers = provider.modelsHeader ? provider.modelsHeader(apiKey) : {};

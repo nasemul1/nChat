@@ -79,7 +79,7 @@ export const PROVIDERS = {
   ollama_cloud: {
     name: "Ollama Cloud",
     description: "Cloud-hosted Llama, Qwen, Gemma & more",
-    needsKey: true,
+    needsKey: false,
     defaultEndpoint: "/api/ollama/v1/chat/completions",
     modelsEndpoint: "/api/ollama/v1/models",
     modelsHeader: (key) => ({ Authorization: `Bearer ${key}` }),

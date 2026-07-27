@@ -4,10 +4,20 @@ function isVercel() {
   return typeof window !== "undefined" && window.location.hostname !== "localhost";
 }
 
+const PROVIDER_PREFIX = {
+  ollama_cloud: "ollama",
+  cloudflare_ai: "cf",
+  openai_compat: "openai_compat",
+  airforce: "airforce",
+  groq: "groq",
+  mistral: "mistral",
+};
+
 function rewriteUrl(url, provider) {
   if (!isVercel() || !url.startsWith("/api/")) return url;
-  const path = url.replace(`/api/${provider === "cf" ? "cf" : provider}/`, "");
-  return `/api/proxy?provider=${provider === "cf" ? "cf" : provider}&path=${encodeURIComponent(path)}`;
+  const prefix = PROVIDER_PREFIX[provider] || provider;
+  const path = url.replace(`/api/${prefix}/`, "");
+  return `/api/proxy?provider=${prefix}&path=${encodeURIComponent(path)}`;
 }
 
 function toOpenAIContent(content, files) {
