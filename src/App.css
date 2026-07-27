@@ -76,6 +76,17 @@
   background: var(--accent);
   display: inline-block;
 }
+.version-badge {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  margin-left: 4px;
+}
 .sidebar-close {
   background: none; border: none;
   color: var(--muted);

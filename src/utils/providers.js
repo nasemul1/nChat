@@ -1,45 +1,40 @@
 export const PROVIDERS = {
-  openrouter: {
-    name: "OpenRouter",
-    description: "GPT-4o, Claude, Gemini, Llama & more",
+  airforce: {
+    name: "AirForce",
+    description: "100+ models — Claude, GPT, Gemini, Llama & more",
     needsKey: true,
-    defaultEndpoint: "https://openrouter.ai/api/v1/chat/completions",
-    modelsEndpoint: "/api/openrouter/api/v1/models",
+    defaultEndpoint: "/api/airforce/v1/chat/completions",
+    modelsEndpoint: "/api/airforce/v1/models",
     modelsHeader: (key) => ({ Authorization: `Bearer ${key}` }),
     parseModels: (data) => {
-      const models = (data?.data || [])
-        .filter((m) => {
-          const outMods = m.architecture?.output_modalities || [];
-          return outMods.includes("text");
-        })
-        .map((m) => {
-          const inMods = m.architecture?.input_modalities || [];
-          const hasImageInput = inMods.includes("image") || inMods.includes("image_url");
-          return {
-            id: m.id,
-            name: m.name || m.id,
-            context: m.context_length,
-            pricing: m.pricing,
-            supportsFiles: hasImageInput,
-          };
+      return (data?.data || [])
+        .filter((m) => m.supports_chat && !m.moderated)
+        .map((m) => ({
+          id: m.id,
+          name: `${m.id} (${m.owned_by})`,
+          context: m.context_length || null,
+          pricing: m.pricepermilliontokens
+            ? {
+                prompt: String(m.pricepermilliontokens / 1000000),
+                completion: String((m.output_pricepermilliontokens || m.pricepermilliontokens) / 1000000),
+              }
+            : null,
+          supportsFiles: m.supports_images || m.supports_vision || false,
+          tier: m.tier || "paid",
+          status: m.status || "unknown",
+        }))
+        .sort((a, b) => {
+          if (a.tier === "free" && b.tier !== "free") return -1;
+          if (a.tier !== "free" && b.tier === "free") return 1;
+          return a.id.localeCompare(b.id);
         });
-      if (!models.some((m) => m.id === "openrouter/auto")) {
-        models.unshift({
-          id: "openrouter/auto",
-          name: "Auto (Router)",
-          context: null,
-          pricing: null,
-          supportsFiles: false,
-        });
-      }
-      return models;
     },
   },
   groq: {
     name: "Groq",
     description: "Fast inference, Llama, Mixtral, Gemma",
     needsKey: true,
-    defaultEndpoint: "https://api.groq.com/openai/v1/chat/completions",
+    defaultEndpoint: "/api/groq/openai/v1/chat/completions",
     modelsEndpoint: "/api/groq/openai/v1/models",
     modelsHeader: (key) => ({ Authorization: `Bearer ${key}` }),
     parseModels: (data) => {
@@ -65,7 +60,7 @@ export const PROVIDERS = {
     name: "Mistral",
     description: "Mistral Large, Medium, Codestral & more",
     needsKey: true,
-    defaultEndpoint: "https://api.mistral.ai/v1/chat/completions",
+    defaultEndpoint: "/api/mistral/v1/chat/completions",
     modelsEndpoint: "/api/mistral/v1/models",
     modelsHeader: (key) => ({ Authorization: `Bearer ${key}` }),
     parseModels: (data) => {

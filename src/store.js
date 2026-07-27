@@ -49,12 +49,12 @@ const getInitial = () => {
     activeProject: null,
     conversations: [],
     activeConvo: null,
-    provider: 'openrouter',
-    model: 'openrouter/auto',
+    provider: 'airforce',
+    model: '',
     apiKeys: {},
     customEndpoints: {},
     accountIds: {},
-    modelSupportsFiles: true,
+    modelSupportsFiles: false,
     theme: 'dark',
     recentModels: [],
   };
@@ -172,8 +172,8 @@ const useStore = create((set, get) => ({
     });
   },
 
-  provider: initial.provider || 'openrouter',
-  model: initial.model || 'openrouter/auto',
+  provider: initial.provider || 'groq',
+  model: initial.model || '',
 
   setProvider: (provider) => {
     set({ provider });

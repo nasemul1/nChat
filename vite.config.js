@@ -8,6 +8,11 @@ export default defineConfig({
   plugins: [react(), cloudflare()],
   server: {
     proxy: {
+      '/api/airforce': {
+        target: 'https://api.airforce',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/airforce/, ''),
+      },
       '/api/ollama': {
         target: 'https://ollama.com',
         changeOrigin: true,
@@ -17,11 +22,6 @@ export default defineConfig({
         target: 'https://api.cloudflare.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/cf/, ''),
-      },
-      '/api/openrouter': {
-        target: 'https://openrouter.ai',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/openrouter/, ''),
       },
       '/api/groq': {
         target: 'https://api.groq.com',

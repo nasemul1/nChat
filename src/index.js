@@ -54,7 +54,7 @@ export default {
     }
 
     const providerProxies = [
-      { prefix: '/api/openrouter/', target: 'https://openrouter.ai' },
+      { prefix: '/api/airforce/', target: 'https://api.airforce' },
       { prefix: '/api/groq/',       target: 'https://api.groq.com' },
       { prefix: '/api/mistral/',    target: 'https://api.mistral.ai' },
     ];

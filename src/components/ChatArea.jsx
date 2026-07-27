@@ -81,7 +81,7 @@ const CopyButton = memo(function CopyButton({ text }) {
   );
 });
 
-const MAX_CONTEXT_MESSAGES = 50;
+const MAX_CONTEXT_MESSAGES = 20;
 
 const MarkdownContent = memo(function MarkdownContent({ content }) {
   const theme = useStore((s) => s.theme);
@@ -243,6 +243,9 @@ export default function ChatArea() {
   const [isLoading, setIsLoading] = useState(false);
   const chatAreaRef = useRef(null);
   const abortRef = useRef(null);
+  const inputRef = useRef(null);
+  const lastSendTime = useRef(0);
+  const COOLDOWN_MS = 2000;
 
   const convo = conversations.find((c) => c.id === activeConvo);
 
@@ -263,6 +266,14 @@ export default function ChatArea() {
   const handleSend = useCallback(async (text) => {
     if (!text.trim() && files.length === 0) return;
 
+    const now = Date.now();
+    const elapsed = now - lastSendTime.current;
+    if (elapsed < COOLDOWN_MS) {
+      const waitSec = ((COOLDOWN_MS - elapsed) / 1000).toFixed(1);
+      alert(`Please wait ${waitSec}s before sending again.`);
+      return;
+    }
+
     const state = useStore.getState();
     let currentConvo = state.conversations.find((c) => c.id === state.activeConvo);
     if (!currentConvo) {
@@ -278,6 +289,12 @@ export default function ChatArea() {
     }
     if (PROVIDERS[state.provider]?.needsAccountId && !accountId) {
       alert('Please set your Cloudflare Account ID in Settings first.');
+      return;
+    }
+
+    // Prevent sending files when model doesn't support them
+    if (files.length > 0 && !modelSupportsFiles) {
+      alert('This model does not support file/image input. Please switch to a vision-capable model or remove the attachments.');
       return;
     }
 
@@ -298,6 +315,7 @@ export default function ChatArea() {
       const endpoint = state.customEndpoints[state.provider] || undefined;
       const controller = new AbortController();
       abortRef.current = controller;
+      lastSendTime.current = Date.now();
 
       const stream = await sendMessage({
         provider: state.provider,
@@ -315,7 +333,12 @@ export default function ChatArea() {
       console.error('Chat send error:', err);
       if (err.name !== 'AbortError') {
         let msg = err.message;
-        if (msg.includes('image input') || msg.includes('image') && msg.includes('support')) {
+        // Check for image/vision support errors from API
+        const lowerMsg = msg.toLowerCase();
+        if (lowerMsg.includes('image input') || 
+            lowerMsg.includes('does not support image') || 
+            lowerMsg.includes('vision') && lowerMsg.includes('support') ||
+            lowerMsg.includes('image') && lowerMsg.includes('support')) {
           msg = `This model doesn't support image input. Switch to a vision model like GPT-4o, Claude 3.5 Sonnet, or Gemini 1.5 Pro.`;
         }
         state.addMessage(currentConvo.id, 'assistant', `Error: ${msg}`);
@@ -324,17 +347,55 @@ export default function ChatArea() {
       setIsLoading(false);
       abortRef.current = null;
     }
-  }, [files]);
+  }, [files, modelSupportsFiles]);
 
   // Listen for welcome prompts
   useEffect(() => {
-    const handler = (e) => {
+const handler = (e) => {
       const { prompt } = e.detail;
       setTimeout(() => handleSend(prompt), 100);
     };
     window.addEventListener('send-welcome-prompt', handler);
     return () => window.removeEventListener('send-welcome-prompt', handler);
   }, [handleSend]);
+
+  // Clipboard paste handler for images
+  useEffect(() => {
+    const handlePaste = async (e) => {
+      if (!modelSupportsFiles) return;
+      if (isLoading) return;
+      if (e.target !== document.body && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') return;
+
+      const items = e.clipboardData?.items;
+      if (!items || items.length === 0) return;
+
+      const imageItems = Array.from(items).filter((item) => item.type.startsWith('image/'));
+      if (imageItems.length === 0) return;
+
+      e.preventDefault();
+      
+      const newFiles = await Promise.all(
+        imageItems.map((item) => {
+          const file = item.getAsFile();
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve({
+              name: file.name || 'pasted-image.png',
+              type: file.type,
+              size: file.size,
+              dataUrl: reader.result,
+            });
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+
+      setFiles((prev) => [...prev, ...newFiles]);
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [modelSupportsFiles, isLoading]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -403,6 +464,7 @@ export default function ChatArea() {
           <div className="input-row">
             <FileAttachment files={files} setFiles={setFiles} supportsFiles={modelSupportsFiles} />
             <textarea
+              ref={inputRef}
               className="input-field"
               rows={1}
               placeholder={files.length > 0 ? `${files.length} file(s) attached — add a message...` : 'Message...'}
