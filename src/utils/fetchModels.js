@@ -1,9 +1,5 @@
 import { PROVIDERS } from "./providers";
 
-function isVercel() {
-  return typeof window !== "undefined" && window.location.hostname !== "localhost";
-}
-
 const PROVIDER_PREFIX = {
   ollama_cloud: "ollama",
   cloudflare_ai: "cf",
@@ -13,11 +9,13 @@ const PROVIDER_PREFIX = {
   mistral: "mistral",
 };
 
-function rewriteUrl(url, provider) {
-  if (!isVercel() || !url.startsWith("/api/")) return url;
+function rewriteUrl(url, provider, apiKey) {
+  if (!url.startsWith("/api/")) return url;
   const prefix = PROVIDER_PREFIX[provider] || provider;
   const path = url.replace(`/api/${prefix}/`, "");
-  return `/api/proxy?provider=${prefix}&path=${encodeURIComponent(path)}`;
+  let proxy = `/api/proxy?provider=${prefix}&path=${encodeURIComponent(path)}`;
+  if (apiKey) proxy += `&key=${encodeURIComponent(apiKey)}`;
+  return proxy;
 }
 
 export async function fetchModels(providerKey, apiKey, customEndpoint, extra) {
@@ -52,23 +50,30 @@ export async function fetchModels(providerKey, apiKey, customEndpoint, extra) {
 
   if (!url) return null;
 
-  url = rewriteUrl(url, providerKey);
+  url = rewriteUrl(url, providerKey, apiKey);
 
   try {
     const headers = provider.modelsHeader ? provider.modelsHeader(apiKey) : {};
     const res = await fetch(url, { headers });
 
     if (!res.ok) {
-      console.warn(
-        `Failed to fetch models from ${provider.name}: ${res.status}`,
-      );
-      return null;
+      let detail = "";
+      try { detail = (await res.text()).slice(0, 200); } catch {}
+      let msg = `Failed to fetch models (HTTP ${res.status})`;
+      try {
+        const parsed = JSON.parse(detail);
+        const m = parsed.error?.message || parsed.message || parsed.detail;
+        if (m) msg = `${m} (HTTP ${res.status})`;
+      } catch {
+        if (detail) msg += `: ${detail}`;
+      }
+      throw new Error(msg);
     }
 
     const data = await res.json();
     return provider.parseModels ? provider.parseModels(data) : null;
   } catch (err) {
     console.warn(`Error fetching models from ${provider.name}:`, err);
-    return null;
+    throw err;
   }
 }

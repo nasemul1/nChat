@@ -303,6 +303,9 @@ export default function ChatArea() {
     setInput('');
     setFiles([]);
     setIsLoading(true);
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+    }
 
     const recentMessages = currentConvo.messages.slice(-MAX_CONTEXT_MESSAGES);
     const allMessages = [

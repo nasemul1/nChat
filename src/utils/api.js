@@ -1,9 +1,5 @@
 import { PROVIDERS } from "./providers";
 
-function isVercel() {
-  return typeof window !== "undefined" && window.location.hostname !== "localhost";
-}
-
 const PROVIDER_PREFIX = {
   ollama_cloud: "ollama",
   cloudflare_ai: "cf",
@@ -13,11 +9,13 @@ const PROVIDER_PREFIX = {
   mistral: "mistral",
 };
 
-function rewriteUrl(url, provider) {
-  if (!isVercel() || !url.startsWith("/api/")) return url;
+function rewriteUrl(url, provider, apiKey) {
+  if (!url.startsWith("/api/")) return url;
   const prefix = PROVIDER_PREFIX[provider] || provider;
   const path = url.replace(`/api/${prefix}/`, "");
-  return `/api/proxy?provider=${prefix}&path=${encodeURIComponent(path)}`;
+  let proxy = `/api/proxy?provider=${prefix}&path=${encodeURIComponent(path)}`;
+  if (apiKey) proxy += `&key=${encodeURIComponent(apiKey)}`;
+  return proxy;
 }
 
 function toOpenAIContent(content, files) {
@@ -67,6 +65,30 @@ async function withRetry(fn, signal) {
   return res;
 }
 
+async function extractError(res) {
+  const status = res.status;
+  let body;
+  try { body = await res.text(); } catch { body = ""; }
+
+  let providerMsg = "";
+  if (body) {
+    try {
+      const parsed = JSON.parse(body);
+      providerMsg =
+        parsed.error?.message ||
+        parsed.error?.detail ||
+        parsed.message ||
+        parsed.detail ||
+        "";
+    } catch {
+      providerMsg = body.slice(0, 300);
+    }
+  }
+
+  if (providerMsg) return `${providerMsg} (HTTP ${status})`;
+  return `HTTP ${status}`;
+}
+
 async function sendOpenAICompatible({
   provider,
   model,
@@ -94,7 +116,7 @@ async function sendOpenAICompatible({
       "No endpoint configured. Set a custom endpoint in Settings.",
     );
 
-  url = rewriteUrl(url, provider);
+  url = rewriteUrl(url, provider, apiKey);
 
   const formatted = messages.map(({ role, content, files }) => ({
     role,
@@ -113,35 +135,8 @@ async function sendOpenAICompatible({
     signal,
   );
 
-  if (res.status === 429) {
-    const wait = res.headers.get("retry-after") || "a few";
-    throw new Error(`Rate limit exceeded. Please wait ${wait}s and try again.`);
-  }
-
-  if (res.status === 502 || res.status === 503 || res.status === 504) {
-    throw new Error(`Model temporarily unavailable (${res.status}). Try again in a few seconds or switch to a different model.`);
-  }
-
   if (!res.ok) {
-    const errText = await res.text().catch(() => "");
-    let errMsg = `API error ${res.status}`;
-    try {
-      const err = JSON.parse(errText);
-      const providerMsg = err.error?.message || err.detail || errMsg;
-      errMsg = providerMsg;
-      if (providerMsg.includes('image') || providerMsg.includes('vision') || providerMsg.includes('modality')) {
-        errMsg = `This model doesn't support image input: ${providerMsg}`;
-      } else if (providerMsg.includes('rate limit') || providerMsg.includes('quota')) {
-        errMsg = `Rate limit exceeded. Wait a moment and try again.`;
-      } else if (providerMsg.includes('invalid') && providerMsg.includes('model')) {
-        errMsg = `Invalid or unavailable model: ${providerMsg}`;
-      } else if (providerMsg.includes('auth') || providerMsg.includes('unauthorized')) {
-        errMsg = `Authentication failed. Check your API key.`;
-      }
-    } catch {
-      if (errText) errMsg += `: ${errText}`;
-    }
-    throw new Error(errMsg);
+    throw new Error(await extractError(res));
   }
 
   return handleStream(res);
@@ -164,19 +159,10 @@ function handleStream(res) {
         try {
           const parsed = JSON.parse(data);
           if (parsed.error) {
-            let msg =
+            const msg =
               parsed.error.message ||
               parsed.error.detail ||
               `Provider error ${parsed.error.code || "unknown"}`;
-            if (msg.includes('image') || msg.includes('vision') || msg.includes('modality')) {
-              msg = `This model doesn't support image input: ${msg}`;
-            } else if (msg.includes('rate limit') || msg.includes('quota')) {
-              msg = `Rate limit exceeded: ${msg}`;
-            } else if (msg.includes('invalid') && msg.includes('model')) {
-              msg = `Invalid or unavailable model: ${msg}`;
-            } else if (msg.includes('auth') || msg.includes('unauthorized')) {
-              msg = `Authentication failed. Check your API key: ${msg}`;
-            }
             controller.error(new Error(msg));
             return;
           }

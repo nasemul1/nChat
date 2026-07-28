@@ -91,9 +91,9 @@ export default function SettingsModal() {
           setModelsError("No models found. Check your credentials.");
         }
       }
-    } catch {
+    } catch (err) {
       setModels([]);
-      setModelsError("Failed to fetch models.");
+      setModelsError(err.message || "Failed to fetch models.");
     } finally {
       setModelsLoading(false);
     }

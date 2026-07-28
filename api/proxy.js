@@ -17,6 +17,7 @@ export default async function handler(req, res) {
   const urlObj = new URL(req.url, 'http://localhost');
   const provider = urlObj.searchParams.get('provider');
   const path = decodeURIComponent(urlObj.searchParams.get('path') || '');
+  const queryKey = urlObj.searchParams.get('key') || '';
   const target = PROVIDER_MAP[provider];
 
   if (!target) {
@@ -25,16 +26,17 @@ export default async function handler(req, res) {
 
   const upstreamUrl = `${target}/${path}`;
 
-  const headers = {};
-  for (const [key, val] of Object.entries(req.headers)) {
-    if (key === 'host' || key === 'connection') continue;
-    headers[key] = val;
-  }
+  const auth = queryKey
+    ? `Bearer ${queryKey}`
+    : (req.headers['authorization'] || '');
+
+  const headers = { 'Authorization': auth };
 
   try {
     const init = { method: req.method, headers };
 
     if (req.method !== 'GET' && req.method !== 'HEAD') {
+      init.headers['Content-Type'] = 'application/json';
       const chunks = [];
       for await (const chunk of req) chunks.push(chunk);
       init.body = Buffer.concat(chunks).toString();
