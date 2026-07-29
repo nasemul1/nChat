@@ -36,10 +36,11 @@ export default async function handler(req, res) {
     const init = { method: req.method, headers };
 
     if (req.method !== 'GET' && req.method !== 'HEAD') {
-      init.headers['Content-Type'] = 'application/json';
+      const originalContentType = req.headers['content-type'] || 'application/json';
+      init.headers['Content-Type'] = originalContentType;
       const chunks = [];
       for await (const chunk of req) chunks.push(chunk);
-      init.body = Buffer.concat(chunks).toString();
+      init.body = Buffer.concat(chunks);
     }
 
     const upstream = await fetch(upstreamUrl, init);
@@ -60,9 +61,17 @@ export default async function handler(req, res) {
       }
       res.end();
     } else {
-      const body = await upstream.text();
-      if (contentType) res.setHeader('Content-Type', contentType);
-      res.status(upstream.status).send(body);
+      const buf = Buffer.from(await upstream.arrayBuffer());
+      const headers = {
+        'Access-Control-Allow-Origin': '*',
+      };
+      if (contentType) headers['Content-Type'] = contentType;
+      const len = upstream.headers.get('content-length');
+      if (len) headers['Content-Length'] = len;
+      const encoding = upstream.headers.get('content-encoding');
+      if (encoding) headers['Content-Encoding'] = encoding;
+      res.writeHead(upstream.status, headers);
+      res.end(buf);
     }
   } catch (err) {
     res.status(500).json({ error: err.message });

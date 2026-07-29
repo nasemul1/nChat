@@ -100,6 +100,7 @@ export const PROVIDERS = {
     description: "Workers AI — Llama, Mistral, Qwen & more",
     needsKey: true,
     needsAccountId: true,
+    supportsImageGen: true,
     defaultEndpoint: "",
     modelsEndpoint: "",
     modelsHeader: (key) => ({ Authorization: `Bearer ${key}` }),

@@ -126,7 +126,7 @@ export default function Sidebar() {
           <div className="sidebar-logo">
             <span className="dot" />
             NCHAT
-            <span className="version-badge">v3</span>
+            <span className="version-badge">v4</span>
           </div>
         </div>
 

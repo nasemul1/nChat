@@ -34,12 +34,17 @@ const saveState = (state) => {
         customEndpoints: state.customEndpoints,
         accountIds: state.accountIds,
         modelSupportsFiles: state.modelSupportsFiles,
+        imageModel: state.imageModel,
         theme: state.theme,
         recentModels: state.recentModels,
+        lastSeenVersion: state.lastSeenVersion,
+        dontShowReleaseNotes: state.dontShowReleaseNotes,
       }));
     } catch {}
   }, 300);
 };
+
+const APP_VERSION = '4.0';
 
 const getInitial = () => {
   const saved = loadState();
@@ -55,14 +60,37 @@ const getInitial = () => {
     customEndpoints: {},
     accountIds: {},
     modelSupportsFiles: false,
+    imageGenMode: false,
+    imageModel: '@cf/black-forest-labs/flux-1-schnell',
     theme: 'dark',
     recentModels: [],
+    lastSeenVersion: '',
+    dontShowReleaseNotes: false,
   };
 };
 
 const initial = getInitial();
 
 const useStore = create((set, get) => ({
+  appVersion: APP_VERSION,
+  lastSeenVersion: initial.lastSeenVersion || '',
+  dontShowReleaseNotes: initial.dontShowReleaseNotes || false,
+
+  shouldShowReleaseNotes: () => {
+    const s = get();
+    return !s.dontShowReleaseNotes && s.lastSeenVersion !== APP_VERSION;
+  },
+
+  markReleaseNotesSeen: () => {
+    set({ lastSeenVersion: APP_VERSION });
+    setTimeout(() => saveState(get()), 0);
+  },
+
+  dismissReleaseNotes: () => {
+    set({ lastSeenVersion: APP_VERSION, dontShowReleaseNotes: true });
+    setTimeout(() => saveState(get()), 0);
+  },
+
   sidebarOpen: window.innerWidth > 768,
   toggleSidebar: (open) => set((s) => ({
     sidebarOpen: open !== undefined ? open : !s.sidebarOpen,
@@ -151,7 +179,7 @@ const useStore = create((set, get) => ({
     });
   },
 
-  addMessage: (convoId, role, content, files) => {
+  addMessage: (convoId, role, content, files, imageData, imageModel) => {
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     set((s) => {
       const conversations = s.conversations.map((c) => {
@@ -159,6 +187,10 @@ const useStore = create((set, get) => ({
         const msg = { role, content, time };
         if (files && files.length > 0) {
           msg.files = files.map((f) => ({ name: f.name, type: f.type, size: f.size, dataUrl: f.dataUrl }));
+        }
+        if (imageData) {
+          msg.imageData = imageData;
+          msg.imageModel = imageModel || null;
         }
         const messages = [...c.messages, msg];
         const title = c.messages.length === 0 && role === 'user'
@@ -194,6 +226,23 @@ const useStore = create((set, get) => ({
     set({ modelSupportsFiles: val });
     setTimeout(() => saveState(get()), 0);
   },
+
+    imageGenMode: false,
+    imageModel: initial.imageModel || '@cf/black-forest-labs/flux-1-schnell',
+    imageGenPickerOpen: false,
+
+  setImageGenMode: (val) => {
+    set({ imageGenMode: val });
+    setTimeout(() => saveState(get()), 0);
+  },
+
+  setImageModel: (model) => {
+    set({ imageModel: model });
+    setTimeout(() => saveState(get()), 0);
+  },
+
+  openImageGenPicker: () => set({ imageGenPickerOpen: true }),
+  closeImageGenPicker: () => set({ imageGenPickerOpen: false }),
 
   setApiKey: (provider, key) => {
     set((s) => {

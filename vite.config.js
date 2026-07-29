@@ -43,7 +43,7 @@ function apiProxyPlugin() {
             const chunks = [];
             for await (const chunk of req) chunks.push(chunk);
             body = Buffer.concat(chunks);
-            headers['Content-Type'] = 'application/json';
+            headers['Content-Type'] = req.headers['content-type'] || 'application/json';
           }
 
           const upstream = await fetch(upstreamUrl, {
@@ -51,10 +51,6 @@ function apiProxyPlugin() {
             headers,
             body,
           });
-
-          console.log(`[proxy] upstream status: ${upstream.status}`);
-          const respText = await upstream.clone().text();
-          console.log(`[proxy] upstream response: ${respText.slice(0, 300)}`);
 
           const contentType = upstream.headers.get('content-type') || '';
 
@@ -73,11 +69,11 @@ function apiProxyPlugin() {
             }
             res.end();
           } else {
-            const text = await upstream.text();
+            const buf = Buffer.from(await upstream.arrayBuffer());
             res.writeHead(upstream.status, {
               'Content-Type': contentType || 'application/json',
             });
-            res.end(text);
+            res.end(buf);
           }
         } catch (err) {
           res.writeHead(500, { 'Content-Type': 'application/json' });

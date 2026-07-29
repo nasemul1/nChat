@@ -717,6 +717,120 @@
   font-size: 10px;
   color: var(--muted);
   letter-spacing: 0.06em;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.image-gen-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.image-gen-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.image-gen-active-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.image-gen-active-name {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--accent);
+}
+.image-gen-exit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s;
+  padding: 0;
+}
+.image-gen-exit:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.speed-badge {
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.speed-fast {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+.speed-medium {
+  background: rgba(234, 179, 8, 0.15);
+  color: #eab308;
+}
+.speed-slow {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.msg-image-container {
+  margin-top: 8px;
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  cursor: pointer;
+}
+.msg-generated-image {
+  max-width: 400px;
+  max-height: 400px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  display: block;
+}
+.msg-image-download {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.msg-image-container:hover .msg-image-download {
+  opacity: 1;
+}
+.msg-image-download:hover {
+  background: var(--accent);
 }
 
 .send-btn {
@@ -793,6 +907,97 @@
   transition: color 0.15s;
 }
 .modal-close:hover { color: var(--fg); }
+
+.release-notes-modal {
+  max-width: 480px;
+  width: 90vw;
+}
+.release-notes-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.release-notes-body {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.release-notes-section {
+  margin-bottom: 16px;
+}
+.release-notes-section:last-child {
+  margin-bottom: 0;
+}
+.release-notes-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  margin: 0 0 8px 0;
+}
+.release-notes-list {
+  margin: 0;
+  padding-left: 18px;
+  list-style: none;
+}
+.release-notes-list li {
+  position: relative;
+  padding-left: 14px;
+  margin-bottom: 5px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.release-notes-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 5px;
+  height: 5px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.release-notes-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+}
+.release-notes-dont-show {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+.release-notes-dont-show:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+.release-notes-close {
+  background: var(--accent);
+  border: none;
+  color: var(--bg);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.release-notes-close:hover {
+  background: var(--accent-hover);
+}
 
 .modal-body { padding: 20px 24px; }
 
